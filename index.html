@@ -197,6 +197,30 @@
   }
   .music-btn:hover { transform: scale(1.1); background: rgba(255,110,200,.35); }
   .music-btn.muted { opacity: .55; }
+
+  /* ===== Responsive điện thoại ===== */
+  @media (max-width: 600px) {
+    .scene { perspective: 700px; }
+    .photo {
+      width: 96px; height: 122px; margin: -61px 0 0 -48px;
+      border-width: 2px; border-radius: 10px;
+    }
+    .planet { width: 70px; height: 70px; }
+    .ring  { width: 150px; height: 40px; }
+    .ring.r2 { width: 186px; height: 50px; }
+    .play { width: 68px; height: 68px; bottom: 26px; }
+    .play svg { width: 28px; height: 28px; }
+    .title { bottom: 108px; font-size: 18px; }
+    .music-btn { width: 44px; height: 44px; top: 16px; right: 16px; font-size: 20px; }
+    .lightbox img { max-height: 55vh; }
+    .lightbox .caption { font-size: 19px; }
+    .lightbox .close { top: 14px; right: 16px; width: 42px; height: 42px; }
+  }
+  /* Màn rất thấp (điện thoại nằm ngang) */
+  @media (max-height: 480px) {
+    .title { display: none; }
+    .play { width: 56px; height: 56px; bottom: 14px; }
+  }
 </style>
 </head>
 <body>
@@ -289,25 +313,43 @@
 
   // ===== Sắp xếp ảnh thành hình cầu 3D (Fibonacci sphere) =====
   const galaxy = document.getElementById('galaxy');
-  const R = 300; // bán kính cầu
   const n = images.length;
-  images.forEach((src, i) => {
-    const y = 1 - (i / (n - 1)) * 2;          // từ 1 xuống -1
-    const r = Math.sqrt(1 - y * y);
-    const theta = Math.PI * (3 - Math.sqrt(5)) * i; // góc vàng
-    const x = Math.cos(theta) * r, z = Math.sin(theta) * r;
-    const card = document.createElement('div');
-    card.className = 'photo';
-    // Xoay tấm ảnh hướng ra ngoài tâm cầu
-    const ry = Math.atan2(x, z) * 180 / Math.PI;
-    const rx = Math.asin(y) * 180 / Math.PI;
-    card.style.transform =
-      `translate3d(${x*R}px, ${y*R}px, ${z*R}px) rotateY(${ry}deg) rotateX(${-rx}deg)`;
-    const im = document.createElement('img');
-    im.src = 'images/' + src; im.alt = 'ky uc ' + (i+1); im.loading = 'lazy';
-    card.appendChild(im);
-    card.addEventListener('click', () => openLightbox('images/' + src, captions[i % captions.length]));
-    galaxy.appendChild(card);
+
+  function radius() {
+    // Bán kính cầu co theo màn hình (điện thoại nhỏ -> cầu nhỏ, ảnh không tràn mép)
+    const m = Math.min(innerWidth, innerHeight);
+    return m < 600 ? Math.max(120, m * 0.42) : Math.min(300, m * 0.42);
+  }
+
+  function buildGalaxy() {
+    const R = radius();
+    galaxy.innerHTML = '';
+    images.forEach((src, i) => {
+      const y = 1 - (i / (n - 1)) * 2;          // từ 1 xuống -1
+      const r = Math.sqrt(1 - y * y);
+      const theta = Math.PI * (3 - Math.sqrt(5)) * i; // góc vàng
+      const x = Math.cos(theta) * r, z = Math.sin(theta) * r;
+      const card = document.createElement('div');
+      card.className = 'photo';
+      // Xoay tấm ảnh hướng ra ngoài tâm cầu
+      const ry = Math.atan2(x, z) * 180 / Math.PI;
+      const rx = Math.asin(y) * 180 / Math.PI;
+      card.style.transform =
+        `translate3d(${x*R}px, ${y*R}px, ${z*R}px) rotateY(${ry}deg) rotateX(${-rx}deg)`;
+      const im = document.createElement('img');
+      im.src = 'images/' + src; im.alt = 'ky uc ' + (i+1); im.loading = 'lazy';
+      card.appendChild(im);
+      card.addEventListener('click', () => openLightbox('images/' + src, captions[i % captions.length]));
+      galaxy.appendChild(card);
+    });
+  }
+  buildGalaxy();
+
+  // Dựng lại khi xoay ngang/dọc hoặc đổi kích thước (có chống dội)
+  let rebuildTimer = null;
+  addEventListener('resize', () => {
+    clearTimeout(rebuildTimer);
+    rebuildTimer = setTimeout(buildGalaxy, 250);
   });
 
   // ===== Nhạc nền: bài "Đơn Giản Anh Yêu Em" =====
