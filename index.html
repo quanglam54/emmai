@@ -11,7 +11,8 @@
     background: radial-gradient(ellipse at center, #1a1035 0%, #0a0618 60%, #000000 100%);
     font-family: 'Segoe UI', system-ui, sans-serif; color: #fff;
   }
-  #stars, #stars2, #stars3 { position: fixed; inset: 0; z-index: 0; }
+  #stars { position: fixed; inset: 0; z-index: 0; }
+  #fx { position: fixed; inset: 0; z-index: 130; pointer-events: none; }
 
   /* ===== Search bar ===== */
   .searchbar {
@@ -39,13 +40,9 @@
   .galaxy {
     position: relative; width: 220px; height: 220px;
     transform-style: preserve-3d;
-    animation: spin 40s linear infinite;
+    will-change: transform;
   }
-  .galaxy.paused { animation-play-state: paused; }
-  @keyframes spin {
-    from { transform: rotateY(0deg) rotateX(-8deg); }
-    to   { transform: rotateY(360deg) rotateX(-8deg); }
-  }
+  .scene { touch-action: none; } /* để vuốt xoay không bị cuộn trang */
   .photo {
     position: absolute; top: 50%; left: 50%;
     width: 140px; height: 178px; margin: -89px 0 0 -70px;
@@ -53,11 +50,21 @@
     border: 3px solid rgba(255,255,255,0.9);
     box-shadow: 0 0 10px rgba(180,120,255,0.35), 0 8px 20px rgba(0,0,0,0.55);
     transform-style: preserve-3d;
-    transition: transform .4s;
+    transition: box-shadow .3s;
     background: #222;
   }
   .photo img { width: 100%; height: 100%; object-fit: cover; display: block;
-    backface-visibility: hidden; filter: brightness(1.08) contrast(1.06) saturate(1.05); }
+    backface-visibility: hidden; filter: brightness(1.08) contrast(1.06) saturate(1.05);
+    transition: transform .35s, filter .35s; }
+  /* Ảnh sáng lên + phóng nhẹ khi rê chuột / chạm */
+  .photo:hover, .photo.touched {
+    box-shadow: 0 0 28px rgba(255,150,240,0.95), 0 8px 24px rgba(0,0,0,0.6);
+    z-index: 20;
+  }
+  .photo:hover img, .photo.touched img {
+    transform: scale(1.12);
+    filter: brightness(1.35) contrast(1.12) saturate(1.2);
+  }
   .photo::after {
     content: ""; position: absolute; inset: 0;
     background: linear-gradient(135deg, rgba(255,180,255,.04), rgba(120,200,255,.03));
@@ -225,6 +232,7 @@
 </head>
 <body>
   <canvas id="stars"></canvas>
+  <canvas id="fx"></canvas>
 
   <!-- Màn hình mở đầu -->
   <div class="intro" id="intro">
@@ -235,7 +243,7 @@
 
   <!-- 3D photo galaxy -->
   <div class="scene">
-    <div class="galaxy paused" id="galaxy"></div>
+    <div class="galaxy" id="galaxy"></div>
     <div class="planet-wrap">
       <div class="ring r2"></div>
       <div class="ring"></div>
@@ -264,6 +272,76 @@
   </button>
 
 <script>
+  // ===== Hệ thống hạt: pháo hoa 🎆 / tim 💗 / bụi sáng theo con trỏ ✨ =====
+  const fx = document.getElementById('fx');
+  const fxc = fx.getContext('2d');
+  let particles = [];
+  function fxResize() { fx.width = innerWidth; fx.height = innerHeight; }
+  fxResize(); addEventListener('resize', fxResize);
+
+  function spawnHearts(x, y, count) {
+    const set = ['❤️','💗','💖','🩷','💕','💞'];
+    for (let i = 0; i < count; i++) particles.push({
+      type: 'heart', x: x + (Math.random()-0.5)*80, y,
+      vx: (Math.random()-0.5)*2.5, vy: -2 - Math.random()*3.2,
+      life: 1, decay: 0.008 + Math.random()*0.006,
+      size: 16 + Math.random()*18, rot: (Math.random()-0.5)*0.6,
+      emoji: set[Math.floor(Math.random()*set.length)]
+    });
+  }
+  function spawnFirework(x, y) {
+    const colors = ['#ff6ec7','#ffd6f5','#8ec5ff','#fff3a0','#c98bff','#7CFFCB','#ff9ae0'];
+    const c = colors[Math.floor(Math.random()*colors.length)];
+    const count = 30;
+    for (let i = 0; i < count; i++) {
+      const a = (Math.PI*2*i)/count;
+      const sp = 2 + Math.random()*3.6;
+      particles.push({ type:'spark', x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp,
+        life:1, decay:0.015+Math.random()*0.01, size:2+Math.random()*2, color:c });
+    }
+  }
+  function spawnTrail(x, y) {
+    if (particles.length > 700) return; // giới hạn cho nhẹ máy
+    particles.push({ type:'trail', x, y,
+      vx:(Math.random()-0.5)*0.7, vy:(Math.random()-0.5)*0.7-0.2,
+      life:1, decay:0.03+Math.random()*0.02, size:1.4+Math.random()*2.4,
+      color:['#ffffff','#ffd6f5','#c9e6ff','#ffe9a0'][Math.floor(Math.random()*4)] });
+  }
+  // Bắn pháo hoa liên hoàn + tim chào mừng
+  function celebrate() {
+    spawnHearts(innerWidth/2, innerHeight*0.9, 26);
+    for (let k = 0; k < 6; k++) setTimeout(() =>
+      spawnFirework(innerWidth*(0.2+Math.random()*0.6), innerHeight*(0.25+Math.random()*0.35)),
+      k * 220);
+  }
+  // Bụi sáng trôi theo con trỏ / ngón tay
+  addEventListener('pointermove', (e) => { spawnTrail(e.clientX, e.clientY); });
+
+  function fxLoop() {
+    fxc.clearRect(0, 0, fx.width, fx.height);
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy;
+      if (p.type === 'heart') { p.vy += 0.02; }
+      else if (p.type === 'spark') { p.vy += 0.05; p.vx *= 0.985; p.vy *= 0.985; }
+      p.life -= p.decay;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      fxc.globalAlpha = Math.max(0, p.life);
+      if (p.type === 'heart') {
+        fxc.save(); fxc.translate(p.x, p.y); fxc.rotate(p.rot);
+        fxc.font = p.size + 'px serif'; fxc.textAlign = 'center'; fxc.textBaseline = 'middle';
+        fxc.fillText(p.emoji, 0, 0); fxc.restore();
+      } else {
+        fxc.beginPath(); fxc.fillStyle = p.color;
+        fxc.shadowBlur = 8; fxc.shadowColor = p.color;
+        fxc.arc(p.x, p.y, p.size, 0, Math.PI*2); fxc.fill(); fxc.shadowBlur = 0;
+      }
+    }
+    fxc.globalAlpha = 1;
+    requestAnimationFrame(fxLoop);
+  }
+  fxLoop();
+
   // ===== Danh sách ảnh =====
   const images = [
     "z7997233075313_9d193b7fcf52afdb55c4951f1b8c517c.jpg",
@@ -305,6 +383,7 @@
   function openLightbox(src, text) {
     lbImg.src = src; lbCaption.textContent = text;
     lightbox.classList.add('show');
+    spawnHearts(innerWidth/2, innerHeight*0.72, 16);   // tim bay lên 💗
   }
   function closeLightbox() { lightbox.classList.remove('show'); }
   document.getElementById('closeLb').addEventListener('click', closeLightbox);
@@ -339,7 +418,15 @@
       const im = document.createElement('img');
       im.src = 'images/' + src; im.alt = 'ky uc ' + (i+1); im.loading = 'lazy';
       card.appendChild(im);
-      card.addEventListener('click', () => openLightbox('images/' + src, captions[i % captions.length]));
+      card.addEventListener('click', () => {
+        if (justDragged) return;               // vừa vuốt xoay thì không mở ảnh
+        openLightbox('images/' + src, captions[i % captions.length]);
+      });
+      // Chạm trên điện thoại: ảnh sáng lên một lúc
+      card.addEventListener('pointerdown', () => {
+        card.classList.add('touched');
+        setTimeout(() => card.classList.remove('touched'), 900);
+      });
       galaxy.appendChild(card);
     });
   }
@@ -370,24 +457,61 @@
     if (musicOn) startMusic(); else stopMusic();
   });
 
+  // ===== Xoay quả cầu: tự xoay + kéo/vuốt bằng tay + quán tính =====
+  const scene = document.querySelector('.scene');
+  let rotX = -8, rotY = 0;      // góc hiện tại
+  let momX = 0, momY = 0;       // quán tính sau khi thả tay
+  let autoSpin = false;         // tự xoay (bật khi vào vũ trụ)
+  let dragging = false, justDragged = false, moved = 0, px = 0, py = 0;
+  const AUTO = 0.16;            // tốc độ tự xoay
+
+  function rotLoop() {
+    if (!dragging) {
+      rotY += momX + (autoSpin ? AUTO : 0);
+      rotX += momY;
+      momX *= 0.94; momY *= 0.94;               // ma sát cho quán tính tắt dần
+      rotX = Math.max(-70, Math.min(70, rotX)); // giới hạn ngửa/cúi
+    }
+    galaxy.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+    requestAnimationFrame(rotLoop);
+  }
+  rotLoop();
+
+  scene.addEventListener('pointerdown', (e) => {
+    dragging = true; moved = 0; px = e.clientX; py = e.clientY;
+    momX = 0; momY = 0;
+  });
+  addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - px, dy = e.clientY - py;
+    px = e.clientX; py = e.clientY;
+    moved += Math.abs(dx) + Math.abs(dy);
+    rotY += dx * 0.3; rotX -= dy * 0.3;
+    rotX = Math.max(-70, Math.min(70, rotX));
+    momX = dx * 0.3; momY = -dy * 0.3;          // lưu vận tốc để tạo quán tính
+  });
+  addEventListener('pointerup', () => {
+    if (!dragging) return;
+    dragging = false;
+    justDragged = moved > 8;                     // nếu có vuốt thì bỏ qua cú bấm mở ảnh
+    setTimeout(() => { justDragged = false; }, 60);
+  });
+
   // ===== Nút "Vào vũ trụ" (màn hình mở đầu) =====
   const intro = document.getElementById('intro');
   document.getElementById('enterBtn').addEventListener('click', () => {
     intro.classList.add('hide');
-    // Tự động bắt đầu xoay vũ trụ khi vào
-    playing = true;
-    galaxy.classList.remove('paused');
+    autoSpin = true;                             // bắt đầu tự xoay
     playBtn.classList.add('playing');
-    startMusic(); // phát nhạc (được phép vì có cú bấm của người dùng)
+    startMusic();
+    celebrate();                                 // pháo hoa + tim chào mừng 🎆
   });
 
-  // ===== Nút Play / Pause =====
+  // ===== Nút Play / Pause (bật/tắt tự xoay) =====
   const playBtn = document.getElementById('playBtn');
-  let playing = false;
   playBtn.addEventListener('click', () => {
-    playing = !playing;
-    galaxy.classList.toggle('paused', !playing);
-    playBtn.classList.toggle('playing', playing);
+    autoSpin = !autoSpin;
+    playBtn.classList.toggle('playing', autoSpin);
   });
 
   // ===== Nền sao lấp lánh =====
