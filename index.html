@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vũ Trụ Ký Ức 💫 quanglam-mai</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: radial-gradient(ellipse at center, #1a1035 0%, #0a0618 60%, #000000 100%);
+    font-family: 'Segoe UI', system-ui, sans-serif; color: #fff;
+  }
+  #stars, #stars2, #stars3 { position: fixed; inset: 0; z-index: 0; }
+
+  /* ===== Search bar ===== */
+  .searchbar {
+    position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
+    width: min(90%, 620px); z-index: 30;
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,0.12); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 40px; padding: 12px 20px;
+    box-shadow: 0 8px 30px rgba(150,80,255,0.35);
+  }
+  .searchbar input {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: #fff; font-size: 16px;
+  }
+  .searchbar input::placeholder { color: rgba(255,255,255,0.7); }
+  .searchbar .ico { font-size: 20px; opacity: .9; }
+
+  /* ===== Scene / 3D photo galaxy ===== */
+  .scene {
+    position: fixed; inset: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: center;
+    perspective: 1100px;
+  }
+  .galaxy {
+    position: relative; width: 220px; height: 220px;
+    transform-style: preserve-3d;
+    animation: spin 40s linear infinite;
+  }
+  .galaxy.paused { animation-play-state: paused; }
+  @keyframes spin {
+    from { transform: rotateY(0deg) rotateX(-8deg); }
+    to   { transform: rotateY(360deg) rotateX(-8deg); }
+  }
+  .photo {
+    position: absolute; top: 50%; left: 50%;
+    width: 140px; height: 178px; margin: -89px 0 0 -70px;
+    border-radius: 14px; overflow: hidden;
+    border: 3px solid rgba(255,255,255,0.9);
+    box-shadow: 0 0 10px rgba(180,120,255,0.35), 0 8px 20px rgba(0,0,0,0.55);
+    transform-style: preserve-3d;
+    transition: transform .4s;
+    background: #222;
+  }
+  .photo img { width: 100%; height: 100%; object-fit: cover; display: block;
+    backface-visibility: hidden; filter: brightness(1.08) contrast(1.06) saturate(1.05); }
+  .photo::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(135deg, rgba(255,180,255,.04), rgba(120,200,255,.03));
+  }
+
+  /* ===== Glowing planet in the middle ===== */
+  .planet-wrap {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%,-50%); z-index: 5;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .planet {
+    width: 92px; height: 92px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffffff, #ffd6f5 45%, #c98bff 80%);
+    box-shadow: 0 0 34px 8px rgba(255,180,255,0.45),
+                0 0 70px 24px rgba(160,110,255,0.25);
+    animation: pulse 4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 34px 8px rgba(255,180,255,0.45), 0 0 70px 24px rgba(160,110,255,0.25); }
+    50%     { box-shadow: 0 0 46px 14px rgba(255,200,255,0.6), 0 0 90px 34px rgba(180,130,255,0.35); }
+  }
+  .ring {
+    position: absolute; width: 230px; height: 60px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,220,255,0.55);
+    transform: rotateX(74deg);
+    box-shadow: 0 0 25px rgba(200,150,255,0.5);
+  }
+  .ring.r2 { width: 280px; height: 74px; border-color: rgba(180,130,255,0.35); }
+
+  /* ===== Floating cute decorations ===== */
+  .deco { position: fixed; z-index: 20; font-size: 30px; pointer-events: none;
+    filter: drop-shadow(0 0 6px rgba(255,150,255,.8));
+    animation: float 6s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0) rotate(-6deg);} 50%{transform:translateY(-18px) rotate(6deg);} }
+
+  /* ===== Play button ===== */
+  .play {
+    position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+    z-index: 40; width: 84px; height: 84px; border-radius: 50%;
+    border: none; cursor: pointer;
+    background: linear-gradient(135deg, #ff6ec7, #ff3d92);
+    box-shadow: 0 0 30px rgba(255,80,160,0.7), 0 10px 25px rgba(0,0,0,.4);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .2s;
+    animation: pulse2 2.5s ease-in-out infinite;
+  }
+  .play:hover { transform: translateX(-50%) scale(1.08); }
+  .play svg { width: 34px; height: 34px; margin-left: 5px; fill: #fff; }
+  .play.playing svg.play-ico { display:none; }
+  .play.playing svg.pause-ico { display:block; }
+  .play svg.pause-ico { display:none; }
+  @keyframes pulse2 { 0%,100%{box-shadow:0 0 30px rgba(255,80,160,0.7),0 10px 25px rgba(0,0,0,.4);} 50%{box-shadow:0 0 45px rgba(255,110,190,0.9),0 10px 25px rgba(0,0,0,.4);} }
+
+  .title {
+    position: fixed; bottom: 138px; left: 50%; transform: translateX(-50%);
+    z-index: 30; text-align: center; width: 100%;
+    text-shadow: 0 0 18px rgba(255,150,255,.8);
+    font-size: 22px; font-weight: 700; letter-spacing: 1px;
+    background: linear-gradient(90deg,#ffd6f5,#c98bff,#8ec5ff);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+
+  /* ===== Màn hình mở đầu ===== */
+  .intro {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 34px; text-align: center;
+    background: radial-gradient(ellipse at center, #241448 0%, #0a0618 65%, #000 100%);
+    transition: opacity .8s ease, visibility .8s;
+  }
+  .intro.hide { opacity: 0; visibility: hidden; }
+  .intro h1 {
+    font-size: clamp(38px, 9vw, 82px); font-weight: 800; letter-spacing: 2px;
+    background: linear-gradient(90deg,#ff9ae0,#ffd6f5,#c98bff,#8ec5ff,#ff9ae0);
+    background-size: 250% auto;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 40px rgba(255,140,230,.5);
+    animation: shine 4s linear infinite, floatY 3.5s ease-in-out infinite;
+  }
+  @keyframes shine { to { background-position: 250% center; } }
+  @keyframes floatY { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-14px);} }
+  .intro .sharks { font-size: clamp(40px, 10vw, 90px); animation: floatY 3s ease-in-out infinite; }
+  .enter-btn {
+    padding: 16px 46px; border: none; border-radius: 50px; cursor: pointer;
+    font-size: 20px; font-weight: 700; color: #fff; letter-spacing: 1px;
+    background: linear-gradient(135deg,#ff6ec7,#ff3d92);
+    box-shadow: 0 0 34px rgba(255,80,160,.7), 0 10px 25px rgba(0,0,0,.4);
+    transition: transform .2s;
+    animation: pulse2 2.4s ease-in-out infinite;
+  }
+  .enter-btn:hover { transform: scale(1.08); }
+
+  /* ===== Ảnh phóng to (lightbox) ===== */
+  .lightbox {
+    position: fixed; inset: 0; z-index: 120;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 22px; padding: 20px;
+    background: rgba(6,3,18,0.82); backdrop-filter: blur(6px);
+    opacity: 0; visibility: hidden; transition: opacity .4s, visibility .4s;
+  }
+  .lightbox.show { opacity: 1; visibility: visible; }
+  .lightbox img {
+    max-width: min(86vw, 440px); max-height: 62vh; object-fit: contain;
+    border-radius: 18px; border: 4px solid rgba(255,255,255,0.9);
+    box-shadow: 0 0 50px rgba(255,120,220,0.55), 0 20px 50px rgba(0,0,0,.6);
+    transform: scale(.8); transition: transform .45s cubic-bezier(.2,.9,.3,1.3);
+  }
+  .lightbox.show img { transform: scale(1); }
+  .lightbox .caption {
+    max-width: min(88vw, 560px); text-align: center;
+    font-size: clamp(18px, 4.4vw, 26px); font-weight: 700; line-height: 1.5;
+    background: linear-gradient(90deg,#ff9ae0,#ffd6f5,#c98bff,#8ec5ff);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 22px rgba(255,140,230,.4);
+  }
+  .lightbox .close {
+    position: absolute; top: 22px; right: 26px;
+    width: 46px; height: 46px; border-radius: 50%; cursor: pointer;
+    border: none; font-size: 24px; color: #fff;
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,.3);
+    transition: transform .2s, background .2s;
+  }
+  .lightbox .close:hover { transform: rotate(90deg); background: rgba(255,80,160,.5); }
+  .lightbox .hint { font-size: 13px; color: rgba(255,255,255,.5); }
+  .photo { cursor: pointer; }
+
+  /* ===== Nút nhạc ===== */
+  .music-btn {
+    position: fixed; top: 20px; right: 22px; z-index: 45;
+    width: 50px; height: 50px; border-radius: 50%; cursor: pointer;
+    border: 1px solid rgba(255,255,255,.3); font-size: 22px;
+    background: rgba(255,255,255,0.13); backdrop-filter: blur(8px);
+    box-shadow: 0 4px 18px rgba(150,80,255,.35);
+    transition: transform .2s, background .2s;
+  }
+  .music-btn:hover { transform: scale(1.1); background: rgba(255,110,200,.35); }
+  .music-btn.muted { opacity: .55; }
+</style>
+</head>
+<body>
+  <canvas id="stars"></canvas>
+
+  <!-- Màn hình mở đầu -->
+  <div class="intro" id="intro">
+    <div class="sharks">🦈💖🦈</div>
+    <h1>em Mai xinh iu</h1>
+    <button class="enter-btn" id="enterBtn">Vào vũ trụ 💫</button>
+  </div>
+
+  <!-- 3D photo galaxy -->
+  <div class="scene">
+    <div class="galaxy paused" id="galaxy"></div>
+    <div class="planet-wrap">
+      <div class="ring r2"></div>
+      <div class="ring"></div>
+      <div class="planet"></div>
+    </div>
+  </div>
+
+  <div class="title">💫 Vũ Trụ Ký Ức 💫</div>
+
+  <!-- Ảnh phóng to + lời nhắn -->
+  <div class="lightbox" id="lightbox">
+    <button class="close" id="closeLb">✕</button>
+    <img id="lbImg" src="" alt="ky uc">
+    <div class="caption" id="lbCaption"></div>
+    <div class="hint">Chạm ra ngoài để đóng 💫</div>
+  </div>
+
+  <!-- Bật/tắt nhạc -->
+  <button class="music-btn" id="musicBtn" title="Bật/tắt nhạc">🔊</button>
+  <audio id="bgm" src="music.mp3" loop preload="auto"></audio>
+
+  <!-- Play/Pause -->
+  <button class="play" id="playBtn" title="Phát">
+    <svg class="play-ico" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    <svg class="pause-ico" viewBox="0 0 24 24"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+  </button>
+
+<script>
+  // ===== Danh sách ảnh =====
+  const images = [
+    "z7997233075313_9d193b7fcf52afdb55c4951f1b8c517c.jpg",
+    "z7997233082021_f87ad3e1e704dae79f05a60115ebf4ad.jpg",
+    "z7997233087296_eb5269f859f7f8fa63bafce83365a446.jpg",
+    "z7997233091312_dbcc17e2f7013b204975a2063b6ea227.jpg",
+    "z7997233099503_5706acedd69993b14f6cb38cdc489745.jpg",
+    "z7997233105293_d54f7bc86ae7f3c1743cf1a9e5898417.jpg",
+    "z7997233113527_ae97744e004f391896c566517b592822.jpg",
+    "z7997233115946_e6ddc4cbb2f913cdbb0f5c70b8c9d1e6.jpg",
+    "z7997233124879_6be4507e75408b6525b254289244af7b.jpg",
+    "z7997233133352_d2669ae1c2efbf0553144c4af9c80b1d.jpg",
+    "z7997233139481_d90bfa72aeaf32a809799c737ef062d3.jpg",
+    "z7997233141172_4de96aacfccae615d7e740c1493478e2.jpg",
+    "z7997233148352_8cb354e5842297ee55d969d23dbacb65.jpg"
+  ];
+
+  // ===== Lời nhắn tình cảm cho từng ảnh =====
+  const captions = [
+    "Nụ cười của em là cả bầu trời của anh 🌸",
+    "Chỉ cần có em, ngày nào cũng là ngày đẹp nhất 💖",
+    "Em xinh iu như một vì sao nhỏ giữa vũ trụ ✨",
+    "Gặp được em là điều may mắn nhất đời anh 🩷",
+    "Mỗi khoảnh khắc bên em đều là kỷ niệm quý giá 💫",
+    "Ánh mắt em làm tim anh lạc nhịp mỗi ngày 🥰",
+    "Em là điều dịu dàng nhất mà anh từng gặp 🌷",
+    "Cả thế giới thu nhỏ lại chỉ còn mình em thôi 🌍💕",
+    "Yêu em nhiều hơn cả số sao trên trời ⭐",
+    "Bên em, anh thấy bình yên đến lạ 🕊️",
+    "Em cứ cười thật tươi, mọi buồn phiền sẽ tan biến 😊",
+    "Mai của anh — cô gái đáng yêu nhất vũ trụ 🦈💗",
+    "Cảm ơn em vì đã xuất hiện trong đời anh 💝"
+  ];
+
+  // ===== Mở lightbox =====
+  const lightbox = document.getElementById('lightbox');
+  const lbImg = document.getElementById('lbImg');
+  const lbCaption = document.getElementById('lbCaption');
+  function openLightbox(src, text) {
+    lbImg.src = src; lbCaption.textContent = text;
+    lightbox.classList.add('show');
+  }
+  function closeLightbox() { lightbox.classList.remove('show'); }
+  document.getElementById('closeLb').addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') closeLightbox(); });
+
+  // ===== Sắp xếp ảnh thành hình cầu 3D (Fibonacci sphere) =====
+  const galaxy = document.getElementById('galaxy');
+  const R = 300; // bán kính cầu
+  const n = images.length;
+  images.forEach((src, i) => {
+    const y = 1 - (i / (n - 1)) * 2;          // từ 1 xuống -1
+    const r = Math.sqrt(1 - y * y);
+    const theta = Math.PI * (3 - Math.sqrt(5)) * i; // góc vàng
+    const x = Math.cos(theta) * r, z = Math.sin(theta) * r;
+    const card = document.createElement('div');
+    card.className = 'photo';
+    // Xoay tấm ảnh hướng ra ngoài tâm cầu
+    const ry = Math.atan2(x, z) * 180 / Math.PI;
+    const rx = Math.asin(y) * 180 / Math.PI;
+    card.style.transform =
+      `translate3d(${x*R}px, ${y*R}px, ${z*R}px) rotateY(${ry}deg) rotateX(${-rx}deg)`;
+    const im = document.createElement('img');
+    im.src = 'images/' + src; im.alt = 'ky uc ' + (i+1); im.loading = 'lazy';
+    card.appendChild(im);
+    card.addEventListener('click', () => openLightbox('images/' + src, captions[i % captions.length]));
+    galaxy.appendChild(card);
+  });
+
+  // ===== Nhạc nền: bài "Đơn Giản Anh Yêu Em" =====
+  const bgm = document.getElementById('bgm');
+  const musicBtn = document.getElementById('musicBtn');
+  let musicOn = true;
+  bgm.volume = 0.6;
+
+  function startMusic() {
+    if (!musicOn) return;
+    bgm.play().catch(() => {});
+  }
+  function stopMusic() { bgm.pause(); }
+  musicBtn.addEventListener('click', () => {
+    musicOn = !musicOn;
+    musicBtn.textContent = musicOn ? '🔊' : '🔇';
+    musicBtn.classList.toggle('muted', !musicOn);
+    if (musicOn) startMusic(); else stopMusic();
+  });
+
+  // ===== Nút "Vào vũ trụ" (màn hình mở đầu) =====
+  const intro = document.getElementById('intro');
+  document.getElementById('enterBtn').addEventListener('click', () => {
+    intro.classList.add('hide');
+    // Tự động bắt đầu xoay vũ trụ khi vào
+    playing = true;
+    galaxy.classList.remove('paused');
+    playBtn.classList.add('playing');
+    startMusic(); // phát nhạc (được phép vì có cú bấm của người dùng)
+  });
+
+  // ===== Nút Play / Pause =====
+  const playBtn = document.getElementById('playBtn');
+  let playing = false;
+  playBtn.addEventListener('click', () => {
+    playing = !playing;
+    galaxy.classList.toggle('paused', !playing);
+    playBtn.classList.toggle('playing', playing);
+  });
+
+  // ===== Nền sao lấp lánh =====
+  const canvas = document.getElementById('stars');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize() {
+    canvas.width = innerWidth; canvas.height = innerHeight;
+    stars = Array.from({length: 260}, () => ({
+      x: Math.random()*canvas.width,
+      y: Math.random()*canvas.height,
+      r: Math.random()*1.6 + 0.3,
+      a: Math.random(),
+      s: Math.random()*0.02 + 0.005,
+      c: ['#ffffff','#ffd6f5','#c9e6ff','#e0c8ff'][Math.floor(Math.random()*4)]
+    }));
+  }
+  resize(); addEventListener('resize', resize);
+
+  // ===== Mưa sao băng =====
+  let meteors = [];
+  function spawnMeteor() {
+    const startX = Math.random() * canvas.width * 1.1;
+    meteors.push({
+      x: startX, y: -50,
+      len: 120 + Math.random() * 180,
+      speed: 7 + Math.random() * 8,
+      angle: Math.PI / 4 + (Math.random() - 0.5) * 0.25, // chéo xuống
+      alpha: 1,
+      color: ['#ffffff','#ffd6f5','#c9e6ff','#ffb3ec'][Math.floor(Math.random()*4)]
+    });
+  }
+  function drawMeteors() {
+    // thỉnh thoảng tạo sao băng mới
+    if (Math.random() < 0.03) spawnMeteor();
+    for (let i = meteors.length - 1; i >= 0; i--) {
+      const m = meteors[i];
+      const dx = Math.cos(m.angle) * m.len;
+      const dy = Math.sin(m.angle) * m.len;
+      const grad = ctx.createLinearGradient(m.x, m.y, m.x - dx, m.y - dy);
+      grad.addColorStop(0, m.color);
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.globalAlpha = m.alpha;
+      ctx.strokeStyle = grad; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - dx, m.y - dy); ctx.stroke();
+      // đầu sao băng sáng
+      ctx.globalAlpha = m.alpha; ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(m.x, m.y, 2, 0, Math.PI*2); ctx.fill();
+      m.x += Math.cos(m.angle) * m.speed;
+      m.y += Math.sin(m.angle) * m.speed;
+      if (m.y > canvas.height + 60 || m.x > canvas.width + 60) meteors.splice(i, 1);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for (const st of stars) {
+      st.a += st.s; if (st.a > 1 || st.a < 0) st.s *= -1;
+      ctx.globalAlpha = Math.abs(st.a);
+      ctx.fillStyle = st.c;
+      ctx.beginPath(); ctx.arc(st.x, st.y, st.r, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    drawMeteors();
+    requestAnimationFrame(draw);
+  }
+  draw();
+
+  // ===== Thả icon dễ thương bay lơ lửng =====
+  const emojis = ['✨','💗','🌸','🦈','⭐','💫','🦈','🌟','🩷'];
+  for (let i=0; i<14; i++) {
+    const d = document.createElement('div');
+    d.className = 'deco';
+    d.textContent = emojis[i % emojis.length];
+    d.style.left = Math.random()*95 + 'vw';
+    d.style.top = Math.random()*90 + 'vh';
+    d.style.fontSize = (18 + Math.random()*26) + 'px';
+    d.style.animationDelay = (Math.random()*6) + 's';
+    d.style.animationDuration = (4 + Math.random()*5) + 's';
+    document.body.appendChild(d);
+  }
+</script>
+</body>
+</html>
